@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCH Pay Links — Bitcoin Cash payment requests, watch-only</title>
+<meta name="description" content="Create a shareable Bitcoin Cash payment link with a QR code and live on-chain payment detection. Watch-only: no sign-up, no private keys, no seed phrases — ever.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230ac18e'/%3E%3Ctext x='32' y='44' font-size='36' font-family='Arial,sans-serif' font-weight='bold' fill='white' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a class="brand" href="./">
+    <span class="brand-mark">B</span>
+    <span class="brand-name">BCH Pay Links</span>
+  </a>
+  <span class="header-badge">Watch-only · BCH mainnet</span>
+</header>
+
+<!-- ============ CREATE VIEW ============ -->
+<main id="view-create" class="view">
+  <section class="hero">
+    <h1>Request Bitcoin Cash with a link.</h1>
+    <p class="hero-sub">Turn your BCH address into a shareable payment page with a QR code,
+      live fiat conversion and on-chain payment detection. No sign-up, no backend, no custody.</p>
+  </section>
+
+  <form id="create-form" class="card" novalidate>
+    <div class="field">
+      <label for="addr">Your BCH address</label>
+      <input id="addr" type="text" inputmode="text" autocomplete="off" spellcheck="false"
+             placeholder="bitcoincash:q… or 1… legacy address">
+      <p class="field-error" id="addr-error"></p>
+      <p class="field-hint">A public receive address from your own wallet. It is safe to share.</p>
+    </div>
+
+    <div class="field">
+      <label>Amount</label>
+      <div class="amount-row">
+        <div class="segmented" role="tablist" aria-label="Amount currency">
+          <button type="button" class="seg active" data-cur="BCH">BCH</button>
+          <button type="button" class="seg" data-cur="USD">USD</button>
+          <button type="button" class="seg" data-cur="CNY">CNY</button>
+        </div>
+        <input id="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.05">
+      </div>
+      <p class="field-error" id="amount-error"></p>
+      <p class="field-hint" id="amount-preview"></p>
+    </div>
+
+    <div class="field">
+      <label for="label">Label <span class="optional">(optional)</span></label>
+      <input id="label" type="text" maxlength="80" placeholder="e.g. Invoice #1042 — logo design">
+    </div>
+
+    <div class="field">
+      <label for="memo">Memo <span class="optional">(optional)</span></label>
+      <input id="memo" type="text" maxlength="140" placeholder="e.g. Thanks! — Ana's Bakery">
+    </div>
+
+    <button type="submit" class="btn primary big" id="generate-btn">Generate payment link</button>
+    <p class="security-note">
+      <strong>Watch-only security:</strong> this tool never asks for, accepts or handles private
+      keys or seed phrases. It only creates links and watches the public blockchain.
+    </p>
+  </form>
+
+  <section id="create-result" class="card hidden" aria-live="polite">
+    <h2>Your payment link</h2>
+    <div class="link-row">
+      <input id="link-out" type="text" readonly>
+      <button type="button" class="btn" id="copy-link-btn">Copy link</button>
+    </div>
+    <div class="result-actions">
+      <div id="link-qr" class="qr-box small"></div>
+      <div class="result-side">
+        <p>Share the link or let the payer scan this code. The payment page shows its own
+          wallet QR, the live amount and confirms the payment on-chain.</p>
+        <a id="open-link" class="btn primary" href="#" target="_blank" rel="noopener">Open payment page</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="card how">
+    <h2>How it works</h2>
+    <ol>
+      <li><strong>Create</strong> — enter your public BCH address and an amount (in BCH, USD or CNY).</li>
+      <li><strong>Share</strong> — send the link or QR to whoever pays you: chat, email, invoice, in person.</li>
+      <li><strong>Get paid</strong> — the payer scans the wallet QR; the page converts fiat at the live
+        rate and confirms the payment on the BCH blockchain, live.</li>
+    </ol>
+  </section>
+</main>
+
+<!-- ============ PAY VIEW ============ -->
+<main id="view-pay" class="view hidden">
+  <section class="card pay-card">
+    <p class="pay-kicker">Payment request</p>
+    <h1 id="pay-label">Payment</h1>
+    <p id="pay-memo" class="pay-memo"></p>
+
+    <div class="amount-block">
+      <div id="pay-amount-main" class="amount-main">…</div>
+      <div id="pay-amount-sub" class="amount-sub"></div>
+      <div id="pay-price-line" class="price-line"></div>
+    </div>
+
+    <div id="pay-qr" class="qr-box"></div>
+    <p class="qr-hint">Scan with any Bitcoin Cash wallet</p>
+
+    <div class="addr-row">
+      <code id="pay-addr"></code>
+      <button type="button" class="btn" id="copy-addr-btn">Copy</button>
+    </div>
+
+    <a id="pay-wallet-btn" class="btn primary big" href="#">Pay with a BCH wallet</a>
+
+    <div id="status-card" class="status waiting" aria-live="polite">
+      <div class="status-head">
+        <span class="status-dot"></span>
+        <span id="status-title">Waiting for payment…</span>
+      </div>
+      <div class="progress"><div id="status-bar"></div></div>
+      <p id="status-detail" class="status-detail"></p>
+      <div id="status-txs" class="status-txs"></div>
+      <p id="status-meta" class="status-meta"></p>
+    </div>
+
+    <p class="security-note">
+      <strong>Watch-only:</strong> this page can only watch the public blockchain. Never enter a
+      private key or seed phrase anywhere to “confirm” a payment — no legitimate payment needs one.
+    </p>
+  </section>
+  <p class="create-own"><a href="./">Create your own BCH payment link →</a></p>
+</main>
+
+<!-- ============ ERROR VIEW ============ -->
+<main id="view-error" class="view hidden">
+  <section class="card">
+    <h1>That payment link looks broken</h1>
+    <p id="error-text" class="field-error"></p>
+    <p>The address in this link could not be validated, so no payment page was shown.
+      Ask the sender for a fresh link — or create your own:</p>
+    <a class="btn primary" href="./">Create a payment link</a>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>BCH Pay Links · Open source under the MIT License · Built for <strong>BCH BLAZE 2026</strong></p>
+  <p class="footer-sub">Prices: CoinGecko / Coinbase · Chain data: Bitcore / Haskoin · Runs entirely in your browser — no server, no tracking.</p>
+</footer>
+
+<script src="assets/qrcode.js"></script>
+<script src="assets/core.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
